@@ -58,37 +58,37 @@
     [_defaults synchronize];
 }
 - (void)disconnect {
-    NSLog(@"disconnect");
+    NSLog(@"断开");
     
-    // OSStatus result;
+    //操作系统状态结果；
     
-   // NSLog(@"SSLClose(): %d", _closeResult);
+    NSLog(@"SSLClose(): %d", _closeResult);
     if (_closeResult != 0) {
         return;
     }
     // 关闭SSL会话
     _closeResult = SSLClose(context);
-    //NSLog(@"SSLClose(): %d", _closeResult);
+    NSLog(@"SSLClose(): %d", _closeResult);
     
-    // Release identity.
+    // 释放身份。
     if (identity != NULL)
         CFRelease(identity);
     
-    // Release certificate.
+    //释放证书。
     if (certificate != NULL)
         CFRelease(certificate);
     
-    // Release keychain.
+    // 释放钥匙扣。
     if (keychain != NULL)
         CFRelease(keychain);
     
-    // Close connection to server.
+    // 关闭服务器的连接。
     close((int)socket);
     
-    // Delete SSL context.
+    // 删除SSL上下文。
     _closeResult = SSLDisposeContext(context);
-    // NSLog(@"SSLDisposeContext(): %d", result);
     
+
 }
 
 #pragma mark --IBAction
@@ -107,59 +107,56 @@
         return;
     }
     
-    NSLog(@"connect");
+    NSLog(@"连接");
     
-    // Define result variable.
-    //OSStatus result;
+    //定义结果变量。
+    // osstatus结果；
     
-    // Establish connection to server.
+    // 建立与服务器的连接。
     PeerSpec peer;
     
     //测试开发环境
     if (self.devSelect == self.mode.selectedCell) {
         _connectResult = MakeServerConnection(Push_Developer, 2195, &socket, &peer);
-        // NSLog(@"MakeServerConnection(): %d", result);
+        
     }
     
     //生产正式环境
     if (self.productSelect == self.mode.selectedCell) {
         _connectResult = MakeServerConnection(Push_Production, 2195, &socket, &peer);
-        // NSLog(@"MakeServerConnection(): %d", result);
+        
     }
     
     
-    // Create new SSL context.
+    // 创建新的SSL上下文。
     _connectResult = SSLNewContext(false, &context);
-    // NSLog(@"SSLNewContext(): %d", result);
     
-    // Set callback functions for SSL context.
+    
+    // SSL上下文设置回调函数。
     _connectResult = SSLSetIOFuncs(context, SocketRead, SocketWrite);
-    // NSLog(@"SSLSetIOFuncs(): %d", result);
     
-    // Set SSL context connection.
+    
+    // 设置SSL上下文连接。
     _connectResult = SSLSetConnection(context, socket);
-    // NSLog(@"SSLSetConnection(): %d", result);
-    
-    
     
     //测试环境
     if (self.devSelect == self.mode.selectedCell) {
-        // Set server domain name.
+        //设置服务器域名。
         _connectResult = SSLSetPeerDomainName(context, Push_Developer, 30);
-        // NSLog(@"SSLSetPeerDomainName(): %d", result);
+        
     }
     
     //生产正式环境
     if (self.productSelect == self.mode.selectedCell) {
         //生产正式环境
         _connectResult = SSLSetPeerDomainName(context,Push_Production, 22);
-        // NSLog(@"SSLSetPeerDomainName(): %d", result);
+        
     }
     
     
-    // Open keychain.
+    // 打开钥匙扣。
     _connectResult = SecKeychainCopyDefault(&keychain);
-    // NSLog(@"SecKeychainOpen(): %d", result);
+   
     [self prepareCerData];
     
     
@@ -169,19 +166,19 @@
     [self disconnect];
 }
 -(NSString*)buildToken:(NSTextField*)text{
-    // Validate input.
+    // 验证输入。
     NSMutableString* tempString;
     
     if(![text.stringValue rangeOfString:@" "].length)
     {
-        //put in spaces in device token
+        //放置在设备标记中的空格
         tempString =  [NSMutableString stringWithString:text.stringValue];
         int offset = 0;
         for(int i = 0; i < tempString.length; i++)
         {
             if(i%8 == 0 && i != 0 && i+offset < tempString.length-1)
             {
-                //NSLog(@"i = %d + offset[%d] = %d", i, offset, i+offset);
+                NSLog(@"i = %d + offset[%d] = %d", i, offset, i+offset);
                 [tempString insertString:@" " atIndex:i+offset];
                 offset++;
             }
@@ -193,7 +190,7 @@
 }
 -(void)prepareCerData{
     
-    // Create certificate.
+    // 创建证书。
     if (self.devSelect == self.mode.selectedCell) {
         _cerPath = self.devCer.stringValue;
     }
@@ -211,20 +208,20 @@
     }
 
     
-    // Create identity.
+    // 创建身份
     _connectResult = SecIdentityCreateWithCertificate(keychain, certificate, &identity);
-    // NSLog(@"SecIdentityCreateWithCertificate(): %d", result);
     
-    // Set client certificate.
+    
+    // 设置客户端证书。
     CFArrayRef certificates = CFArrayCreate(NULL, (const void **)&identity, 1, NULL);
     _connectResult = SSLSetCertificate(context, certificates);
-    // NSLog(@"SSLSetCertificate(): %d", result);
+    
     CFRelease(certificates);
     
-    // Perform SSL handshake.
+    // 执行SSL握手。
     do {
         _connectResult = SSLHandshake(context);
-        // NSLog(@"SSLHandshake(): %d", result);
+        
     } while(_connectResult == errSSLWouldBlock);
     
 }
@@ -260,7 +257,7 @@
         _token = [self buildToken:self.productToken];
     }
     
-    // Convert string into device token data.
+    // 将字符串转换成设备标记数据。
     NSMutableData *deviceToken = [NSMutableData data];
     unsigned value;
     NSScanner *scanner = [NSScanner scannerWithString:_token];
@@ -270,12 +267,12 @@
         [deviceToken appendBytes:&value length:sizeof(value)];
     }
     
-    // Create C input variables.
+    // 创建C输入变量。
     char *deviceTokenBinary = (char *)[deviceToken bytes];
     char *payloadBinary = (char *)[self.payload.stringValue UTF8String];
     size_t payloadLength = strlen(payloadBinary);
     
-    // Define some variables.
+    //定义一些变量。
     uint8_t command = 0;
     //char message[293]; //限定值
     char message[8000]; //限定值
@@ -283,7 +280,7 @@
     uint16_t networkTokenLength = htons(32);
     uint16_t networkPayloadLength = htons(payloadLength);
     
-    // Compose message.
+    // 撰写邮件。
     memcpy(pointer, &command, sizeof(uint8_t));
     pointer += sizeof(uint8_t);
     memcpy(pointer, &networkTokenLength, sizeof(uint16_t));
@@ -295,7 +292,7 @@
     memcpy(pointer, payloadBinary, payloadLength);
     pointer += payloadLength;
     
-    // Send message over SSL.
+    // 在SSL发送消息。
     size_t processed = 0;
     OSStatus result = SSLWrite(context, &message, (pointer - message), &processed);
     NSLog(@"SSLWrite(): %d %zd", result, processed);
